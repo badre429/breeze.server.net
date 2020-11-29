@@ -25,3 +25,4 @@ breeze-*.zip
 breeze*.nupkg
 
 Breeze.Client/
+lib

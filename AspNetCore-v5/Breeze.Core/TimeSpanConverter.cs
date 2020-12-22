@@ -1,24 +1,28 @@
-﻿using System;
-using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using Newtonsoft.Json;
+using System;
 using System.Xml;
 
 namespace Breeze.Core {
   // http://www.w3.org/TR/xmlschema-2/#duration
+  public class TimeSpanConverter : JsonConverter {
+    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
+      var ts = (TimeSpan)value;
+      var tsString = XmlConvert.ToString(ts);
+      serializer.Serialize(writer, tsString);
+    }
 
-  public class TimeSpanConverter : JsonConverter<TimeSpan> {
-    public override TimeSpan Read(
-        ref Utf8JsonReader reader,
-        Type typeToConvert,
-        JsonSerializerOptions options) =>
-            TimeSpan.Parse(reader.GetString());
+    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
+      if (reader.TokenType == JsonToken.Null) {
+        return null;
+      }
 
-    public override void Write(
-        Utf8JsonWriter writer,
-        TimeSpan dateTimeValue,
-        JsonSerializerOptions options) =>
-            writer.WriteStringValue(dateTimeValue.ToString());
+      var value = serializer.Deserialize<String>(reader);
+      return XmlConvert.ToTimeSpan(value);
+    }
+
+    public override bool CanConvert(Type objectType) {
+      return objectType == typeof(TimeSpan) || objectType == typeof(TimeSpan?);
+    }
   }
 }
 

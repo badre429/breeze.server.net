@@ -1,6 +1,5 @@
 using Breeze.Core;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -13,19 +12,19 @@ namespace Breeze.Persistence {
 
   public class BreezeConfig {
 
-
+    
     public static BreezeConfig Instance {
       get {
         lock (__lock) {
           AppDomain.CurrentDomain.AssemblyLoad += CurrentDomain_AssemblyLoad;
           if (__instance == null) {
             var typeCandidates = ProbeAssemblies.SelectMany(a => GetTypes(a));
-            var types = typeCandidates.Where(t => typeof(BreezeConfig).IsAssignableFrom(t) && !t.IsAbstract).ToList();
+            var types = typeCandidates.Where(t => typeof (BreezeConfig).IsAssignableFrom(t) && !t.IsAbstract).ToList();
 
             if (types.Count == 0) {
               __instance = new BreezeConfig();
             } else if (types.Count == 1) {
-              __instance = (BreezeConfig)Activator.CreateInstance(types[0]);
+              __instance = (BreezeConfig) Activator.CreateInstance(types[0]);
             } else {
               throw new Exception(
                 "More than one BreezeConfig implementation was found in the currently loaded assemblies - limit is one.");
@@ -36,21 +35,21 @@ namespace Breeze.Persistence {
       }
     }
 
-    public JsonSerializerOptions GetJsonSerializerOptions() {
+    public JsonSerializerSettings GetJsonSerializerSettings() {
       lock (__lock) {
-        if (_JsonSerializerOptions == null) {
-          _JsonSerializerOptions = CreateJsonSerializerOptions();
+        if (_jsonSerializerSettings == null) {
+          _jsonSerializerSettings = CreateJsonSerializerSettings();
         }
-        return _JsonSerializerOptions;
+        return _jsonSerializerSettings;
       }
     }
 
-    public JsonSerializerOptions GetJsonSerializerOptionsForSave() {
+    public JsonSerializerSettings GetJsonSerializerSettingsForSave() {
       lock (__lock) {
-        if (_JsonSerializerOptionsForSave == null) {
-          _JsonSerializerOptionsForSave = CreateJsonSerializerOptionsForSave();
+        if (_jsonSerializerSettingsForSave == null) {
+          _jsonSerializerSettingsForSave = CreateJsonSerializerSettingsForSave();
         }
-        return _JsonSerializerOptionsForSave;
+        return _jsonSerializerSettingsForSave;
       }
     }
 
@@ -77,20 +76,20 @@ namespace Breeze.Persistence {
     /// <summary>
     /// Override to use a specialized JsonSerializer implementation.
     /// </summary>
-    protected virtual JsonSerializerOptions CreateJsonSerializerOptions() {
+    protected virtual JsonSerializerSettings CreateJsonSerializerSettings() {
 
-      var JsonSerializerOptions = new JsonSerializerOptions();
-      return JsonSerializationFns.UpdateWithDefaults(JsonSerializerOptions);
+      var jsonSerializerSettings = new JsonSerializerSettings();
+      return JsonSerializationFns.UpdateWithDefaults(jsonSerializerSettings);
 
     }
 
     /// <summary>
     /// Override to use a specialized JsonSerializer implementation for saving.
-    /// Base implementation uses CreateJsonSerializerOptions() then sets TypeNameHandling to None
+    /// Base implementation uses CreateJsonSerializerSettings() then sets TypeNameHandling to None
     /// </summary>
-    protected virtual JsonSerializerOptions CreateJsonSerializerOptionsForSave() {
-      var settings = CreateJsonSerializerOptions();
-      // settings.TypeNameHandling = TypeNameHandling.None;
+    protected virtual JsonSerializerSettings CreateJsonSerializerSettingsForSave() {
+      var settings = CreateJsonSerializerSettings();
+      settings.TypeNameHandling = TypeNameHandling.None;
       return settings;
     }
 
@@ -143,15 +142,16 @@ namespace Breeze.Persistence {
     /// Returns TransactionSettings.Default.  Override to return different settings.
     /// </summary>
     /// <returns></returns>
-    public virtual TransactionSettings GetTransactionSettings() {
-      return TransactionSettings.Default;
+    public virtual TransactionSettings GetTransactionSettings()
+    {
+        return TransactionSettings.Default;
     }
 
     private static Object __lock = new Object();
     private static BreezeConfig __instance;
-
-    private JsonSerializerOptions _JsonSerializerOptions = null;
-    private JsonSerializerOptions _JsonSerializerOptionsForSave = null;
+    
+    private JsonSerializerSettings _jsonSerializerSettings = null;
+    private JsonSerializerSettings _jsonSerializerSettingsForSave = null;
 
   }
 

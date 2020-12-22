@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -109,15 +111,13 @@ namespace Breeze.Persistence.EFCore {
 
     protected override string BuildJsonMetadata() {
       var metadata = MetadataBuilder.BuildFrom(DbContext);
-      var jss = new JsonSerializerOptions {
-        // ContractResolver = new CamelCasePropertyNamesContractResolver(),
-
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        // NullValueHandling = NullValueHandling.Ignore,
+      var jss = new JsonSerializerSettings {
+        ContractResolver = new CamelCasePropertyNamesContractResolver(),
+        NullValueHandling = NullValueHandling.Ignore,
       };
-      jss.Converters.Add(new JsonStringEnumConverter());
+      jss.Converters.Add(new StringEnumConverter());
 
-      var json = JsonSerializer.Serialize(metadata, jss);
+      var json = JsonConvert.SerializeObject(metadata, jss);
 
       var altMetadata = BuildAltJsonMetadata();
       if (altMetadata != null) {
@@ -187,7 +187,7 @@ namespace Breeze.Persistence.EFCore {
         ee.State = Microsoft.EntityFrameworkCore.EntityState.Detached;
         ee.Navigations.ToList().ForEach(n => n.CurrentValue = null);
       });
-
+   
     }
 
     #endregion
@@ -219,7 +219,7 @@ namespace Breeze.Persistence.EFCore {
         var entry = GetOrAddEntityEntry(entityInfo);
         entry.State = Microsoft.EntityFrameworkCore.EntityState.Deleted;
         // Handle owned entities - ( complex types).
-        var ownedNavs = entry.Navigations.Where(n => n.Metadata.TargetEntityType.IsOwned());
+        var ownedNavs = entry.Navigations.Where(n => n.Metadata.GetTargetType().IsOwned());
         ownedNavs.ToList().ForEach(n => {
           var nEntry = GetEntityEntry(n.CurrentValue);
           nEntry.State = Microsoft.EntityFrameworkCore.EntityState.Deleted;
@@ -303,16 +303,16 @@ namespace Breeze.Persistence.EFCore {
 
       // SetModified(entry, entityInfo.ForceUpdate);
       MarkEntryAndOwnedChildren(entry, Microsoft.EntityFrameworkCore.EntityState.Modified);
-
+      
 
       return entry;
     }
 
-    private void MarkEntryAndOwnedChildren(EntityEntry entry, Microsoft.EntityFrameworkCore.EntityState state) {
+    private void MarkEntryAndOwnedChildren(EntityEntry entry, Microsoft.EntityFrameworkCore.EntityState state ) {
       entry.State = state;
 
       // Handle owned entities - ( complex types).
-      var ownedNavs = entry.Navigations.Where(n => n.Metadata.TargetEntityType.IsOwned());
+      var ownedNavs = entry.Navigations.Where(n => n.Metadata.GetTargetType().IsOwned());
       ownedNavs.ToList().ForEach(n => {
         var nEntry = GetEntityEntry(n.CurrentValue);
         nEntry.State = state;
@@ -372,7 +372,7 @@ namespace Breeze.Persistence.EFCore {
       originalValuesMap.ToList().ForEach(kvp => {
         var propertyName = kvp.Key;
         var originalValue = kvp.Value;
-        if (originalValue is JsonDocument) {
+        if (originalValue is JObject) {
           // only really need to perform updating original values on key properties
           // and a complex object cannot be a key.
           return;
@@ -464,9 +464,9 @@ namespace Breeze.Persistence.EFCore {
         result = Enum.Parse(nnToType, val as string, true);
       } else if (typeof(IConvertible).IsAssignableFrom(nnToType)) {
         result = Convert.ChangeType(val, nnToType, System.Threading.Thread.CurrentThread.CurrentCulture);
-      } else if (val is JsonElement) {
+      } else if (val is JObject) {
         var serializer = new JsonSerializer();
-        result = serializer.Deserialize(new JTokenReader((JsonElement)val), toType);
+        result = serializer.Deserialize(new JTokenReader((JObject)val), toType);
       } else {
         // Guids fail above - try this
         TypeConverter typeConverter = TypeDescriptor.GetConverter(toType);

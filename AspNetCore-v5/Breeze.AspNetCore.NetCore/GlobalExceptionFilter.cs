@@ -2,14 +2,14 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using System.Text.Json;
+using Newtonsoft.Json;
 using System.Collections.Generic;
 
 namespace Breeze.AspNetCore {
   public class GlobalExceptionFilter : IExceptionFilter {
 
     public GlobalExceptionFilter() {
-
+      
     }
 
     public void OnException(ExceptionContext context) {
@@ -20,7 +20,7 @@ namespace Breeze.AspNetCore {
       var response = new ErrorDto() {
         Message = msg,
         StackTrace = context.Exception.StackTrace
-
+        
       };
 
       var eeEx = ex as EntityErrorsException;
@@ -47,7 +47,7 @@ namespace Breeze.AspNetCore {
     // other fields
 
     public override string ToString() {
-      return JsonSerializer.Serialize(this);
+      return JsonConvert.SerializeObject(this);
     }
   }
 }

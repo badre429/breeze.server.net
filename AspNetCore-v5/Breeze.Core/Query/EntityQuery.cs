@@ -1,10 +1,9 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-using System.Text.Json;
-using System.Text.Json.Serialization;
 namespace Breeze.Core {
   public class EntityQuery {
 
@@ -41,7 +40,7 @@ namespace Breeze.Core {
       }
       Dictionary<string, object> qmap;
       try {
-        var dmap = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+        var dmap = JsonHelper.Deserialize(json);
         qmap = (Dictionary<string, object>)dmap;
       } catch (Exception) {
         throw new Exception(
@@ -87,8 +86,7 @@ namespace Breeze.Core {
      * @return A new EntityQuery.
      */
     public EntityQuery Where(String json) {
-    
-      var qmap = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+      var qmap = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
       var pred = BasePredicate.PredicateFromMap(qmap);
       return this.Where(pred);
     }

@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -40,7 +42,7 @@ namespace Breeze.Persistence {
 
       var sw = new StringWriter();
       using (var jsonWriter = new JsonPropertyFixupWriter(sw)) {
-        // jsonWriter.Formatting = System.Text.Json.Formatting.Indented;
+        // jsonWriter.Formatting = Newtonsoft.Json.Formatting.Indented;
         var jsonSerializer = new JsonSerializer();
         var converter = new XmlNodeConverter();
         jsonSerializer.Converters.Add(converter);
@@ -96,7 +98,8 @@ namespace Breeze.Persistence {
         if (!HandleSaveException(e2, SaveWorkState)) {
           throw;
         }
-      } finally {
+      }
+      finally {
         CloseDbConnection();
       }
 
@@ -121,7 +124,7 @@ namespace Breeze.Persistence {
 
 
     private static JsonSerializer CreateJsonSerializer() {
-      var serializerSettings = BreezeConfig.Instance.GetJsonSerializerOptionsForSave();
+      var serializerSettings = BreezeConfig.Instance.GetJsonSerializerSettingsForSave();
       var jsonSerializer = JsonSerializer.Create(serializerSettings);
       return jsonSerializer;
     }
@@ -296,9 +299,9 @@ namespace Breeze.Persistence {
 
   public class SaveWorkState {
 
-    public SaveWorkState(PersistenceManager contextProvider, JsonElement entitiesArray) {
+    public SaveWorkState(PersistenceManager contextProvider, JArray entitiesArray) {
       ContextProvider = contextProvider;
-      var jObjects = entitiesArray.EnumerateArray(jt => (dynamic)jt).ToList();
+      var jObjects = entitiesArray.Select(jt => (dynamic)jt).ToList();
       var groups = jObjects.GroupBy(jo => (String)jo.entityAspect.entityTypeName).ToList();
 
       EntityInfoGroups = groups.Select(g => {
@@ -345,7 +348,7 @@ namespace Breeze.Persistence {
       } else {
         var entities = SaveMap.SelectMany(kvp => kvp.Value.Where(ei => (ei.EntityState != EntityState.Detached))
           .Select(entityInfo => entityInfo.Entity)).ToList();
-
+        
         // we want to stub off any navigation properties here, but how to do it quickly.
         // entities.ForEach(e => e
         var deletes = SaveMap.SelectMany(kvp => kvp.Value.Where(ei => (ei.EntityState == EntityState.Deleted || ei.EntityState == EntityState.Detached))
